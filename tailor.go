@@ -104,15 +104,14 @@ func (t *Tailor) readLoop(ctx context.Context) (chan Line, chan error) {
 
 	go func() {
 		defer func() {
-			close(lines)
-			close(errs)
-
 			if t.file != nil {
 				err := t.file.Close()
 				if err != nil {
 					errs <- errors.Wrap(err, "error closing file")
 				}
 			}
+			close(lines)
+			close(errs)
 			atomic.StoreInt32(&t.working, 0)
 		}()
 
