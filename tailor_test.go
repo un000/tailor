@@ -20,23 +20,27 @@ func TestTailFileFromStart(t *testing.T) {
 	const fileName = "./file_from_start"
 	fileData := []byte(`1
 2
-3`)
+3
+`)
 
 	err := ioutil.WriteFile(fileName, fileData, os.ModePerm)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 	defer os.Remove(fileName)
 
 	f := tailor.New(fileName, tailor.WithSeekOnStartup(0, io.SeekStart))
 	if fileName != f.FileName() {
 		t.Error("file name mismatch")
+		return
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
 	err = f.Run(ctx)
 	if err != nil {
 		t.Error(err)
+		return
 	}
 
 	var i = 1
@@ -54,7 +58,8 @@ func TestTailFileFromStart(t *testing.T) {
 			}
 
 			if line.StringTrimmed() != strconv.Itoa(i) {
-				t.Error(err)
+				t.Errorf("want: '%d' actual '%s'", i, line.StringTrimmed())
+				return
 			}
 			t.Log(line.StringTrimmed())
 		case err, ok := <-f.Errors():
@@ -62,6 +67,7 @@ func TestTailFileFromStart(t *testing.T) {
 				return
 			}
 			t.Error(err)
+			return
 		}
 	}
 }

@@ -311,7 +311,12 @@ func (t *Tailor) seekToLineStart() error {
 			return nil
 		}
 
-		offset, err = t.file.Seek(-2, io.SeekCurrent)
+		newOffset := int64(-2)
+		if offset-2 < 0 {
+			newOffset = -1
+		}
+
+		offset, err = t.file.Seek(newOffset, io.SeekCurrent)
 		if err != nil {
 			return err
 		}
