@@ -17,6 +17,11 @@ without such overhead.
 go get github.com/un000/tailor
 ```
 
+## TODO
+- [ ] Better Test Code Coverage
+- [ ] Benchmarks
+- [ ] Rate limiter + Leaky Bucket
+
 ## Example
 ```
 package main
