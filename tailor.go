@@ -84,12 +84,10 @@ func (t *Tailor) Run(ctx context.Context) (<-chan Line, <-chan error, error) {
 		return nil, nil, errors.Wrapf(err, "error seeking to the line beginning %s", t.fileName)
 	}
 
-	{
-		err := t.updateFileStatus()
-		if err != nil {
-			finalizer()
-			return nil, nil, errors.Wrapf(err, "error getting file size %s", t.fileName)
-		}
+	err = t.updateFileStatus()
+	if err != nil {
+		finalizer()
+		return nil, nil, errors.Wrapf(err, "error getting file size %s", t.fileName)
 	}
 
 	lines, errs := t.readLoop(ctx)
@@ -189,8 +187,6 @@ func (t *Tailor) readLoop(ctx context.Context) (chan Line, chan error) {
 						return
 					}
 
-					r = bufio.NewReaderSize(t.file, t.opts.bufioReaderPoolSize)
-					pollerTimeout = t.opts.pollerTimeout
 					err = t.updateFileStatus()
 					if err != nil {
 						errs <- errors.Wrap(err, "error getting file status")
@@ -202,6 +198,9 @@ func (t *Tailor) readLoop(ctx context.Context) (chan Line, chan error) {
 						return
 					}
 
+					r = bufio.NewReaderSize(t.file, t.opts.bufioReaderPoolSize)
+					pollerTimeout = t.opts.pollerTimeout
+
 					continue
 				}
 
@@ -210,7 +209,7 @@ func (t *Tailor) readLoop(ctx context.Context) (chan Line, chan error) {
 			}
 			if err != nil && err != io.EOF {
 				errs <- errors.Wrapf(err, "error reading Line")
-				continue
+				return
 			}
 
 			pollerTimeout = t.opts.pollerTimeout
@@ -247,12 +246,12 @@ func (t *Tailor) isFileStillTheSame() (isSameFile bool, err error) {
 			time.Sleep(time.Second)
 			continue
 		}
-		if err == nil {
-			break
+
+		if err != nil {
+			return false, errors.Wrap(err, "error stating maybe new file by name")
 		}
-	}
-	if err != nil {
-		return false, errors.Wrap(err, "error stating maybe new file by name")
+
+		break
 	}
 
 	currentFileInfo, err := t.file.Stat()
@@ -264,16 +263,17 @@ func (t *Tailor) isFileStillTheSame() (isSameFile bool, err error) {
 }
 
 // FileName returns the name of the tailed file.
-func (t *Tailor) FileName() string {
+func (t Tailor) FileName() string {
 	return t.fileName
 }
 
 // Lag returns approximate lag, updater per interval.
-func (t *Tailor) Lag() int64 {
+func (t Tailor) Lag() int64 {
 	return atomic.LoadInt64(&t.lag)
 }
 
 // seekToLineStart seeks the cursor at the beginning of a line at offset.
+// If the byte at offset equals \n, so next line will be selected.
 func (t *Tailor) seekToLineStart() error {
 	bts := make([]byte, 1)
 
@@ -285,7 +285,7 @@ func (t *Tailor) seekToLineStart() error {
 		return err
 	}
 
-	for offset != 0 {
+	for offset > 0 {
 		_, err = t.file.Read(bts)
 		if err != nil && err != io.EOF {
 			return err
@@ -306,7 +306,6 @@ func (t *Tailor) seekToLineStart() error {
 }
 
 // updateFileStatus update a current seek from the file an an actual file size.
-// If the byte at offset equals \n, so next line will be selected.
 func (t *Tailor) updateFileStatus() (err error) {
 	fi, err := t.file.Stat()
 	if err != nil {
