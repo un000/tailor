@@ -15,10 +15,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	ErrFileNotExists = os.ErrNotExist
-)
-
 type Tailor struct {
 	fileName string
 	file     *os.File
@@ -61,36 +57,17 @@ func (t *Tailor) Run(ctx context.Context) error {
 		return errors.New("already working")
 	}
 
-	finalizer := func() {
+	failFinalizer := func() {
 		if t.file != nil {
 			_ = t.file.Close()
 		}
 		atomic.StoreInt32(&t.working, 0)
 	}
 
-	var err error
-	t.file, err = os.Open(t.fileName)
+	err := t.openFile(t.opts.runOffset, t.opts.runWhence)
 	if err != nil {
-		finalizer()
+		failFinalizer()
 		return errors.Wrap(err, "can't open file for tailing")
-	}
-
-	_, err = t.file.Seek(t.opts.runOffset, t.opts.runWhence)
-	if err != nil {
-		finalizer()
-		return errors.Wrapf(err, "error seeking file %s", t.fileName)
-	}
-
-	err = t.seekToLineStart()
-	if err != nil {
-		finalizer()
-		return errors.Wrapf(err, "error seeking to the line beginning %s", t.fileName)
-	}
-
-	err = t.updateFileStatus()
-	if err != nil {
-		finalizer()
-		return errors.Wrapf(err, "error getting file size %s", t.fileName)
 	}
 
 	t.readLoop(ctx)
@@ -184,24 +161,9 @@ func (t *Tailor) readLoop(ctx context.Context) {
 						t.errs <- errors.Wrap(err, "error closing current file")
 					}
 
-					t.file, err = os.Open(t.fileName)
+					err = t.openFile(t.opts.reopenOffset, t.opts.reopenWhence)
 					if err != nil {
-						if os.IsNotExist(err) {
-							t.errs <- ErrFileNotExists
-							return
-						}
 						t.errs <- errors.Wrap(err, "error reopening file")
-						return
-					}
-
-					err = t.updateFileStatus()
-					if err != nil {
-						t.errs <- errors.Wrap(err, "error getting file status")
-						return
-					}
-					err = t.seekToLineStart()
-					if err != nil {
-						t.errs <- errors.Wrap(err, "error seeking to the line beginning")
 						return
 					}
 
@@ -287,12 +249,32 @@ func (t Tailor) Lag() int64 {
 	return atomic.LoadInt64(&t.lag)
 }
 
+// openFile opens the file for reading, seeks to the beginning of the line at opts.*offset and updates the lag.
+func (t *Tailor) openFile(offset int64, whence int) (err error) {
+	t.file, err = os.Open(t.fileName)
+	if err != nil {
+		return errors.Wrap(err, "error opening file")
+	}
+
+	err = t.seekToLineStart(offset, whence)
+	if err != nil {
+		return errors.Wrap(err, "error seeking to line start")
+	}
+
+	err = t.updateFileStatus()
+	if err != nil {
+		return errors.Wrap(err, "error updating file status")
+	}
+
+	return nil
+}
+
 // seekToLineStart seeks the cursor at the beginning of a line at offset.
 // If the byte at offset equals \n, so next line will be selected.
-func (t *Tailor) seekToLineStart() error {
+func (t *Tailor) seekToLineStart(offset int64, whence int) error {
 	bts := make([]byte, 1)
 
-	offset, err := t.file.Seek(0, io.SeekCurrent)
+	offset, err := t.file.Seek(offset, whence)
 	if err == io.EOF {
 		return nil
 	}
