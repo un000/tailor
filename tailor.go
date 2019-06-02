@@ -149,7 +149,11 @@ func (t *Tailor) readLoop(ctx context.Context) (chan Line, chan error) {
 						line = part
 						break
 					}
+				} else {
+					errs <- errors.Wrap(err, "error reading line")
+					return
 				}
+
 				line = append(line, part...)
 
 				if len(line) == 0 && err == io.EOF {
@@ -164,10 +168,10 @@ func (t *Tailor) readLoop(ctx context.Context) (chan Line, chan error) {
 			}
 
 			// check that logrotate swapped the file
-			if err == io.EOF && len(line) == 0 {
+			if len(line) == 0 && err == io.EOF {
 				isSameFile, err := t.isFileStillTheSame()
 				if err != nil {
-					errs <- err
+					errs <- errors.Wrap(err, "error checking that file is the same")
 					return
 				}
 
@@ -208,7 +212,7 @@ func (t *Tailor) readLoop(ctx context.Context) (chan Line, chan error) {
 				continue
 			}
 			if err != nil && err != io.EOF {
-				errs <- errors.Wrapf(err, "error reading Line")
+				errs <- errors.Wrap(err, "error reading line")
 				return
 			}
 
