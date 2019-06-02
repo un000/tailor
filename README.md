@@ -2,7 +2,7 @@ Tailor, the library for tailing nginx access logs
 -----
 [![Go Doc](https://godoc.org/github.com/un000/tailor?status.svg)](https://godoc.org/github.com/un000/tailor)
 
-Tailor provides the functionality of tailing nginx access log under logrotate.
+Tailor provides the functionality of tailing for e. g. nginx logs under logrotate.
 Tailor will follow a selected log file and reopen it if it's been rotated. Now, tailor doesn't require inotify, because it polls logs
 with a tiny delay. So the library can achieve cross-platform.
 
@@ -40,7 +40,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	lines, errs, err := t.Run(ctx)
+	err := t.Run(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -48,13 +48,13 @@ func main() {
 	fmt.Println("Tailing file:", t.FileName())
 	for {
 		select {
-		case line, ok := <-lines:
+		case line, ok := <-t.Lines():
 			if !ok {
 				return
 			}
 
 			fmt.Println(line.StringTrimmed())
-		case err, ok := <-errs:
+		case err, ok := <-t.Errors():
 			if !ok {
 				return
 			}
