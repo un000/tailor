@@ -34,7 +34,7 @@ func TestTailFileFromStart(t *testing.T) {
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
-	lines, errs, err := f.Run(ctx)
+	err = f.Run(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -48,7 +48,7 @@ func TestTailFileFromStart(t *testing.T) {
 
 	for ; i <= 3; i++ {
 		select {
-		case line, ok := <-lines:
+		case line, ok := <-f.Lines():
 			if !ok {
 				return
 			}
@@ -57,7 +57,7 @@ func TestTailFileFromStart(t *testing.T) {
 				t.Error(err)
 			}
 			t.Log(line.StringTrimmed())
-		case err, ok := <-errs:
+		case err, ok := <-f.Errors():
 			if !ok {
 				return
 			}

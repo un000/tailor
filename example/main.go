@@ -19,7 +19,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	lines, errs, err := t.Run(ctx)
+	err := t.Run(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -27,13 +27,13 @@ func main() {
 	fmt.Println("Tailing file:", t.FileName())
 	for {
 		select {
-		case line, ok := <-lines:
+		case line, ok := <-t.Lines():
 			if !ok {
 				return
 			}
 
 			fmt.Println(line.StringTrimmed())
-		case err, ok := <-errs:
+		case err, ok := <-t.Errors():
 			if !ok {
 				return
 			}
