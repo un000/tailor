@@ -11,7 +11,7 @@ type ChannelBasedRateLimiter struct {
 // NewChannelBasedRateLimiter creates an instance of rate limiter, which ticker ticks every period to limit the lps.
 func NewChannelBasedRateLimiter(lps int) *ChannelBasedRateLimiter {
 	return &ChannelBasedRateLimiter{
-		t: time.NewTicker(1 / (time.Duration(lps) * time.Second)),
+		t: time.NewTicker(time.Second / time.Duration(lps)),
 	}
 }
 
