@@ -86,7 +86,7 @@ func WithRateLimiter(rl RateLimiter) Option {
 	}
 }
 
-// WithLeakyBucket is used skip read lines, when listener is full.
+// WithLeakyBucket is used to skip a read lines, when a listener is full.
 func WithLeakyBucket() Option {
 	return func(options *options) {
 		options.leakyBucket = true
