@@ -21,6 +21,9 @@ type options struct {
 	bufioReaderPoolSize int
 	pollerTimeout       time.Duration
 	updateLagInterval   time.Duration
+
+	rateLimiter RateLimiter
+	leakyBucket bool
 }
 
 // withDefaultOptions sets the initial options.
@@ -73,5 +76,19 @@ func WithSeekOnReopen(offset int64, whence int) Option {
 func WithUpdateLagInterval(duration time.Duration) Option {
 	return func(options *options) {
 		options.updateLagInterval = duration
+	}
+}
+
+// WithRateLimiter is used to rate limit output lines. Watch RateLimiter interface.
+func WithRateLimiter(rl RateLimiter) Option {
+	return func(options *options) {
+		options.rateLimiter = rl
+	}
+}
+
+// WithLeakyBucket is used skip read lines, when listener is full.
+func WithLeakyBucket() Option {
+	return func(options *options) {
+		options.leakyBucket = true
 	}
 }

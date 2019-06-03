@@ -20,7 +20,7 @@ go get github.com/un000/tailor
 ## TODO
 - [x] Better Test Code Coverage
 - [ ] Benchmarks
-- [ ] Rate limiter + Leaky Bucket
+- [x] Rate limiter + Leaky Bucket
 
 ## Example
 ```
