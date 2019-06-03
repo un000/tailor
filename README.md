@@ -1,4 +1,4 @@
-Tailor, the library for tailing nginx access logs
+Tailor, the library for tailing logs under logrotate
 -----
 [![Go Doc](https://godoc.org/github.com/un000/tailor?status.svg)](https://godoc.org/github.com/un000/tailor)
 
