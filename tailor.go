@@ -21,6 +21,7 @@ type Tailor struct {
 
 	opts options
 
+	// stats
 	lastPos  int64
 	lastSize int64
 	lag      int64
@@ -90,6 +91,11 @@ func (t *Tailor) readLoop(ctx context.Context) {
 			}
 			close(t.lines)
 			close(t.errs)
+
+			if t.opts.rateLimiter != nil {
+				t.opts.rateLimiter.Close()
+			}
+
 			atomic.StoreInt32(&t.working, 0)
 		}()
 
@@ -183,9 +189,21 @@ func (t *Tailor) readLoop(ctx context.Context) {
 
 			pollerTimeout = t.opts.pollerTimeout
 
-			t.lines <- Line{
-				line:     line,
-				fileName: t.fileName,
+			if t.opts.rateLimiter == nil || t.opts.rateLimiter.Allow() {
+				line := Line{
+					line:     line,
+					fileName: t.fileName,
+				}
+
+				if t.opts.leakyBucket {
+					select {
+					case t.lines <- line:
+					default:
+					}
+					continue
+				}
+
+				t.lines <- line
 			}
 		}
 	}()
