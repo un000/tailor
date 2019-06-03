@@ -269,42 +269,61 @@ func (t *Tailor) openFile(offset int64, whence int) (err error) {
 	return nil
 }
 
-// seekToLineStart seeks the cursor at the beginning of a line at offset.
-// If the byte at offset equals \n, so next line will be selected.
+// seekToLineStart seeks the cursor at the beginning of a line at offset. Internally this function uses a buffer
+// to find the beginning of a line. If the byte at offset equals \n, so the next line will be selected.
 func (t *Tailor) seekToLineStart(offset int64, whence int) error {
-	bts := make([]byte, 1)
+	const (
+		bufSize int64 = 256
+	)
 
-	offset, err := t.file.Seek(offset, whence)
-	if err == io.EOF {
+	initialOffset, err := t.file.Seek(offset, whence)
+	if initialOffset == 0 {
 		return nil
+	}
+	if err == io.EOF {
+		err = nil
 	}
 	if err != nil {
 		return err
 	}
 
-	for offset > 0 {
-		_, err = t.file.Read(bts)
+	min := func(a, b int64) int64 {
+		if a < b {
+			return a
+		}
+		return b
+	}
+
+	var current int64 = 0
+Loop:
+	for {
+		current += min(bufSize, initialOffset-current)
+		buf := make([]byte, min(current, bufSize))
+
+		n, err := t.file.ReadAt(buf, initialOffset-current)
 		if err != nil && err != io.EOF {
 			return err
 		}
+		buf = buf[:n]
 
-		b := bts[0]
-		if b == '\n' {
-			return nil
+		current -= int64(n)
+		for i := int64(len(buf)) - 1; i >= 0; i-- {
+			if buf[i] == '\n' {
+				break Loop
+			}
+			current++
 		}
-
-		newOffset := int64(-2)
-		if offset-2 < 0 {
-			newOffset = -1
-		}
-
-		offset, err = t.file.Seek(newOffset, io.SeekCurrent)
-		if err != nil {
-			return err
+		if initialOffset-current == 0 {
+			break
 		}
 	}
 
-	return nil
+	_, err = t.file.Seek(-current, io.SeekCurrent)
+	if err == io.EOF {
+		err = nil
+	}
+
+	return err
 }
 
 // updateFileStatus update a current seek from the file an an actual file size.

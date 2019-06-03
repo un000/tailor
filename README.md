@@ -18,7 +18,7 @@ go get github.com/un000/tailor
 ```
 
 ## TODO
-- [ ] Better Test Code Coverage
+- [x] Better Test Code Coverage
 - [ ] Benchmarks
 - [ ] Rate limiter + Leaky Bucket
 
