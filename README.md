@@ -1,6 +1,8 @@
 Tailor, the library for tailing logs under logrotate
 -----
 [![Go Doc](https://godoc.org/github.com/un000/tailor?status.svg)](https://godoc.org/github.com/un000/tailor)
+[![Sourcegraph](https://sourcegraph.com/github.com/un000/tailor/-/badge.svg)](https://sourcegraph.com/github.com/un000/tailor?badge)
+[![Go Report Card](https://goreportcard.com/badge/github.com/un000/tailor)](https://goreportcard.com/report/github.com/un000/tailor)
 
 Tailor provides the functionality of tailing for e. g. nginx logs under logrotate.
 Tailor will follow a selected log file and reopen it if it's been rotated. Now, tailor doesn't require inotify, because it polls logs
@@ -13,17 +15,20 @@ without such overhead.
 ![Actual usage](https://i.imgur.com/G4QICfk.png)
 
 ## Install
-```
+```Bash
 go get github.com/un000/tailor
 ```
 
-## TODO
-- [x] Better Test Code Coverage
-- [ ] Benchmarks
-- [x] Rate limiter + Leaky Bucket
+## Features
+- Tail files from any offsets
+- Reopening on logrotate
+- Rate limiter + support custom rate limiters
+- Leaky bucket
+- Performant helpers to trim or convert bytes to string
+- Lag monitoring
 
 ## Example
-```
+```Go
 package main
 
 import (

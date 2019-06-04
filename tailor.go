@@ -182,10 +182,6 @@ func (t *Tailor) readLoop(ctx context.Context) {
 				pollerTimeout = t.exponentialSleep(pollerTimeout, 5*time.Second)
 				continue
 			}
-			if err != nil && err != io.EOF {
-				t.errs <- errors.Wrap(err, "error reading line")
-				return
-			}
 
 			pollerTimeout = t.opts.pollerTimeout
 
